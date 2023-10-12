@@ -1,4 +1,5 @@
-# mining.project1
+# ASCVD Risk Prediction 
 
-Project motivation: We decided to work on this dataset because Atherosclerotic cardiovascular disease (ASCVD) remains one of the leading causes of death and morbidity worldwide. Its rate has been increasing and it’s affecting the majority of adults. In order to effectively combat this global health issue we will study and analyze the data; to have a better understanding of ASCVD relevant data, enabling us to have an accurate risk assessment, optimize treatment strategies, and provide early detection and estimation of potential risk.
-### Student names: Yara Bahmaid, Aljohara Albanyan, Reema Aljalajel, Najd Alsabi
+We decided to work on this dataset because Atherosclerotic cardiovascular disease (ASCVD) remains one of the leading causes of death and morbidity worldwide. Its rate has been increasing and it’s affecting the majority of adults. In order to effectively combat this global health issue we will study and analyze the data; to have a better understanding of ASCVD relevant data, enabling us to have an accurate risk assessment, optimize treatment strategies, and provide early detection and estimation of potential risk.
+
+### Student names: Reema Aljalajel, Yara Bahmaid, Najd Alsabi, Aljohara Albanyan
