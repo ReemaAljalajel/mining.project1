@@ -1,0 +1,396 @@
+---
+title: "Heart Risk"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+## **Goal of Collecting this Dataset:**
+
+Our goal is to predict 10-year ASCVD risk in adults using key features such as age, gender, race, smoking status, diabetes, hypertension, and cholesterol levels. The dataset aims to facilitate accurate risk assessments and guide targeted preventive healthcare interventions.
+
+#### Source of the dataset: [HeartRisk](https://www.kaggle.com/datasets/mokar2001/ascvd-heart-risk)
+
+It consist of 1000 row that each have 10 attributes.
+
+#### Type of attributes:
+
+```{r echo=FALSE}
+my_table <- data.frame(Attribute_Name= c("isMale","isBlack","isSmoker","isDiabetic","isHypertensive","Age","Systolic","Cholesterol","HDL","Risk  (class label)"), Description= c("Gender","Race","Smoking Status","Diabetes Status","Hypertension Status","Age of the candidate","Max Blood Pressure","Total Cholesterol","HDL Cholesterol","10-year ASCVD Risk"), Data_Type= c("Binary","Binary","Binary","Binary","Binary","Numeric (Integer)","Numeric (Integer)","Numeric (Integer)","Numeric (Integer)","Numeric (Decimal)"), Possible_Values= c("0 (Female), 1 (Male)","0 (Not Black), 1 (Black)","0 (Non-smoker), 1 (Smoker)","0 (Normal), 1 (Diabetic)","0 (Normal BP), 1 (High BP)","Range between 40-79","Range between 90-200","Range between 130-200","Range between 20-100","Low, Borderline, Intermediate, High risk"), stringsAsFactors = FALSE)
+colnames(my_table) <- c("Attribute_Name","Description","Data_Type","Possible_Values")
+print(my_table)
+```
+
+#### Table that shows our Dataset before any modifications:
+
+```{r}
+library(caret)
+
+dataset <- read.csv("heartRisk.csv")
+print(dataset)
+```
+
+#### The structure of the dataset provides a top-level view of the variables it contains, by understanding the structure of the dataset and the attributes it contains, we can better analyze and interpret the data to gain insights into the relationship between these variables and the 10-year ASCVD risk:
+
+```{r}
+str(dataset)
+```
+
+#### Dataset dimensions:
+
+```{r}
+dim(dataset)
+```
+
+-   **Number of rows = 1000 , Number of columns = 10**
+
+#### To summarize the descriptive statistics for all the columns in the dataset, we can calculate various statistical measures for each attribute:
+
+```{r}
+library(Hmisc)
+describe(dataset)
+```
+
+#### To have a better understanding of the values in our Dataset, we applied various statistical measures to the attributes. These measures provide insights into different aspects of the data:
+
+```{r}
+summary(dataset)
+```
+
+#### We measured the Variance for all numeric attributes to see the degree of spread in the dataset:
+
+```{r}
+var(dataset$Age)
+var(dataset$Systolic)
+var(dataset$Cholesterol)
+var(dataset$HDL)
+var(dataset$Risk)
+```
+
+### Scatter Plot:
+
+```{r}
+library(ggplot2)
+
+ggplot(dataset, aes(x = Age, y =Systolic, color= 'red'))+
+  geom_point() +
+  xlab("Age") +
+  ylab("Blood Pressure")
+```
+
+In order to gain a deeper understanding of our dataset, we examined the attributes "Systolic" and "Age" to determine if there was a predictive or correlational relationship between them. However, after analyzing the scatter plot, we discovered that there is no discernible relationship or correlation between these two attributes.
+
+```{r}
+
+ggplot(dataset, aes(x = Systolic, y = Risk)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, aes(color = "Regression Line")) +
+  facet_wrap(~cut(Age, 3), scales = "free") +
+  xlab("Systolic Blood Pressure") +
+  ylab("Risk") +
+  ggtitle("Relationship between Systolic Blood Pressure and Risk at Different Age Levels") +
+  theme_minimal()
+
+```
+
+However, notable association between 'Systolic Blood Pressure', 'Age', and 'Risk', segmented into various age categories. It shows that risk notably rises with age and Blood Pressure,as the regression line for the age bracket (66,79] exhibits higher risks, indicating a high correlation between advancing age and elevated risk levels in this dataset.
+
+### Density Plot:
+
+```{r}
+library(tidyr)
+
+dataset_long <- gather(dataset, key = "column", value = "value", Age:ncol(dataset))
+
+ggplot(dataset_long, aes(x = value, fill = column)) +
+  geom_density(alpha = 0.7) +
+  facet_wrap(~column, scales = "free") +
+  xlab("Value") +
+  ylab("Density")
+```
+
+**To understand the relative frequency of different values within our dataest we measeured the density, and analyzed the corresponding graphs. Here are the observations we made:**
+
+\- The graph representing the distribution of ages shows a reasonable representation of ages between 40 and 80 within the dataset. This suggests that the age values are well-distributed within this range.
+
+\- Both the density graphs for cholesterol and HDL indicate a slight skew towards lower cholesterol levels. This suggests that the majority of the data points tend to have lower cholesterol values rather than higher ones.
+
+\- The density graph for systolic blood pressure displays a uniform distribution across the entire range of blood pressures. This indicates that the data points are evenly spread out without any significant concentration in specific pressure ranges.
+
+\- The density graph for the risk variable exhibits a positively skewed (right-skewed) distribution. This implies that there is a higher frequency of data points with lower risk values, while the occurrence of higher risk values is relatively less frequent.
+
+### Bar Plot visualization for the 'isSmoker' attribute:
+
+```{r}
+bb <- dataset$isSmoker %>% table() %>%
+barplot(bb , col = c("lightgreen","darkred"), width= c(4,4.1),space=0.1, names.arg=c("o","1"), legend.text = c("Non-Smoker","Smoker"))
+
+```
+
+To better understand the smoking status within our dataset, we visualized the data using a bar plot. This visualization was chosen to provide a clear and easily interpretable representation of the differences in smoking status. From the bar plot, we observed that the numbers are nearly evenly distributed between non-smokers (0) and smokers (1). This indicates that there is a balanced representation of individuals who are non-smokers and smokers in the dataset.
+
+### Matrix measurement of the correlation in our dataset:
+
+```{r}
+library(corrplot)
+
+corr_matrix <- cor(dataset)
+corrplot(corr_matrix, method = "color", type = "lower", tl.col = "black", tl.srt = 45, 
+          addCoef.col = "black", number.cex = 0.7, tl.cex = 0.7, col = colorRampPalette(c("white", "lightblue"))(90))
+```
+
+By analyzing the correlation matrix of our dataset, we can identify suspicious events and patterns in the data. However, it is evident that there are no strong correlations among the features in the dataset. Despite this, we can rank the correlations in descending order based on their impact on the risk of heart disease.The order of correlations, from highest to lowest in terms of their influence on heart disease risk, is as follows: Age, Systolic blood pressure, is Diabetic, is Smoker, is Hypertensive, gender is male, , race is black, Cholestrol, HDL.
+
+### Box Plot:
+
+```{r}
+boxplot(dataset$Age)
+```
+
+The Age boxplot shows a wide range of values that might lead to a lower accuracy of the results when it comes to clculations so we need change it to a standardized range. Additionally, the boxplot analysis indicates that there are no outliers present in the Age attribute. This implies that the Age data points are within a reasonable range and do not deviate significantly from the overall distribution of values.
+
+```{r}
+boxplot(dataset$Systolic)
+```
+
+The boxplot analysis of the Systolic blood pressure attribute reveals the absence of outliers, indicating that the data points are within a reasonable range without any extreme values. However, it is worth noting that the range of Systolic blood pressure is considerably large. To ensure accurate calculations and mitigate potential conflicts, it is recommended to transform the Systolic blood pressure into a smaller and standardized range. This transformation will help normalize the data and make it more suitable for analysis and calculations.
+
+```{r}
+boxplot(dataset$Cholesterol)
+```
+
+According to the boxplot analysis of the Cholesterol attribute, no outliers are observed, suggesting that the data points are within a reasonable range without any extreme values. However, it is important to narrow down the range of values to optimize the accuracy of our calculations. By reducing the range of Cholesterol values, we can improve the reliability and precision of our dataset, enabling us to obtain more reliable and meaningful results.
+
+```{r}
+boxplot(dataset$HDL)
+```
+
+The HDL boxplot reveal that there are no outlires shown. However, it is necessary to transform the range of HDL values to bring them into a standardized and common range. By performing this transformation, we can almost ensure to have better insights and improved data quality.
+
+------------------------------------------------------------------------
+
+### 2-Data cleaning
+
+#### 2.1 Missing values:
+
+**Since missing/null values can affect the dataset badly we decided to check it and delete all missing/null values from our dataset to make it as clean as possible so that we can end up with efficint dataset resulting to a higher possibiliaty of accurete results later on.**
+
+```{r}
+# Check for missing values
+missing_values <- colSums(is.na(dataset))
+
+# Print columns with missing values
+print("Columns with missing values:")
+print(names(missing_values)[missing_values > 0])
+
+# Print the count of missing values for each column
+print("Count of missing values for each column:")
+print(missing_values)
+
+```
+
+##### The analysis revealed that there are no missing values across any of the attributes.
+
+#### 2.2 Detecting and removing outliers:
+
+In data analysis, checking and removing outliers is crucial to ensure the reliability of statistical insights. Outliers, as extreme data points, can distort summary statistics, potentially leading to inaccurate analyses. By identifying and, if necessary, removing outliers, we enhance the robustness of our findings.
+
+```{r}
+
+# Compute IRQ
+Q1 <- quantile(dataset$Age, 0.25)
+Q3 <- quantile(dataset$Age, 0.75)
+IQR <- Q3 - Q1
+
+# Identify outliers
+lower_bound <- Q1 - (1.5 * IQR)
+upper_bound <- Q3 + (1.5 * IQR)
+outliers <- which(dataset$Age < lower_bound | dataset$Age > upper_bound)
+
+# Get the number of outliers
+num_outliers <- length(outliers)
+print(paste("Number of Age outliers:", num_outliers))
+
+# Compute IRQ
+Q1 <- quantile(dataset$Systolic, 0.25)
+Q3 <- quantile(dataset$Systolic, 0.75)
+IQR <- Q3 - Q1
+
+# Identify outliers
+lower_bound <- Q1 - (1.5 * IQR)
+upper_bound <- Q3 + (1.5 * IQR)
+outliers <- which(dataset$Systolic < lower_bound | dataset$Systolic > upper_bound)
+
+# Get the number of outliers
+num_outliers <- length(outliers)
+print(paste("Number of Systolic outliers:", num_outliers))
+
+# Compute IRQ
+Q1 <- quantile(dataset$Cholesterol, 0.25)
+Q3 <- quantile(dataset$Cholesterol, 0.75)
+IQR <- Q3 - Q1
+
+# Identify outliers
+lower_bound <- Q1 - (1.5 * IQR)
+upper_bound <- Q3 + (1.5 * IQR)
+outliers <- which(dataset$Cholesterol < lower_bound | dataset$Cholesterol > upper_bound)
+
+# Get the number of outliers
+num_outliers <- length(outliers)
+print(paste("Number of Cholesterol outliers:", num_outliers))
+
+# Compute IRQ
+Q1 <- quantile(dataset$HDL, 0.25)
+Q3 <- quantile(dataset$HDL, 0.75)
+IQR <- Q3 - Q1
+
+# Identify outliers
+lower_bound <- Q1 - (1.5 * IQR)
+upper_bound <- Q3 + (1.5 * IQR)
+outliers <- which(dataset$HDL < lower_bound | dataset$HDL > upper_bound)
+
+# Get the number of outliers
+num_outliers <- length(outliers)
+print(paste("Number of HDL outliers:", num_outliers))
+
+```
+
+The result indicates that there are no outliers, but we will also use a box plot to ensure that there are no outliers.
+
+```{r}
+boxplot(dataset[,c(6,7,8,9)], main="Boxplot with Outliers", col=c("lightblue","lightblue","lightblue","lightblue"))
+
+```
+
+By using the box plot we can see that there are no outliers in the data set.
+
+------------------------------------------------------------------------
+
+## 3-Data reduction
+
+In analyzing the dataset,The initial dataset provided a comprehensive and relevant set of information for the research objectives without the need for removal or condensation of variables.
+
+used the findCorrelation function in caret library to outputs the index of variables we need to delete. targeting any pair with a correlation coefficient exceeding 0.75.
+
+```{r}
+findCorrelation(cor(dataset), cutoff=0.75)
+```
+
+In our case, the function finds out that no feature need to be deleted.
+
+------------------------------------------------------------------------
+
+### 4-Data transformation
+
+#### 4.1 normalization
+
+Data normalization is a preprocessing step that involves transforming numerical data within a dataset to a standard, uniform scale. This process ensures that all variables, regardless of their original units or scales, are brought into a consistent and comparable range. the following attributes were selected for normalization:(age, systolic, cholestrol, HDL)
+
+```{r}
+normalize <- function(x)
+{
+  return ((x - min(x))/ (max(x)- min(x)) )
+}
+
+dataset$Age<-normalize(dataset$Age)
+dataset$Systolic<-normalize(dataset$Systolic)
+dataset$Cholesterol<-normalize(dataset$Cholesterol)
+dataset$HDL<-normalize(dataset$HDL)
+
+head(dataset)
+```
+
+we have successfully completed the data normalization. This process entailed scaling our numerical features to a standardized range, typically between 0 and 1.
+
+#### 4.2 Discretization
+
+To make our dataset understandable and easily interpretable, especially when using tree-based classification methods, we transformed the continuous class label 'Risk' into specific, categorized risk levels.
+
+These levels are delineated as:
+
+Low risk (\<5%), Borderline risk (5% to 7.4%), Intermediate risk (7.5% to 19.9%), and High risk (≥20%).
+
+```{r}
+# Categorize 'Risk' into defined categories
+dataset$Risk <- cut(
+  dataset$Risk, 
+  breaks = c(-Inf, 5, 7.4, 19.9, Inf),
+  labels = c("Low risk", "Borderline risk", "Intermediate risk", "High risk"),
+  right = FALSE,
+  include.lowest = TRUE
+)
+```
+
+our dataset after Discretization:
+
+```{r}
+head(dataset)
+```
+
+------------------------------------------------------------------------
+
+## 5- Feature selection
+
+Feature selection is one of the most important task to boost performance of our machine learning model by removing irrelevant features the model will make decisions only using important features. we will use Recursive Feature Elimination (RFE), which is a widely used wrapper-type algorithm for selecting features that are most relevant in predicting the target variable 'Risk' in our case.
+
+```{r echo=FALSE}
+library(ggcorrplot)
+library(caret)
+library(randomForest)
+library(gam)
+library(ggplot2)
+```
+
+```{r}
+
+# ensure results are repeatable
+set.seed(7)
+
+# Define RFE control parameters
+ctrl <- rfeControl(functions=rfFuncs, method="cv", number=10)
+
+# Execute RFE using dataset features 1-9 and "Risk" as the class lable
+results <- rfe(dataset[,1:9], dataset$Risk, sizes=c(1:9), rfeControl=ctrl)
+
+# Display RFE results
+print(results)
+
+
+```
+
+```{r}
+plot(results, type=c("g", "o"))
+```
+
+The asterisk (\*) in the column indicates the number of features recommended by RFE as yielding the best model according to the resampling results. it shows that when 9 variables are used, the model achieves the best accuracy of approximately 80% and a kappa value of 0.7.
+
+**The graphical representation of feature importance :**
+
+The "Mean Decrease Gini" score tells us how crucial a feature is for making accurate predictions in a Random Forest model. A higher score means the feature is more valuable in deciding how to classify the data correctly, helping the model make better decisions.
+
+```{r}
+
+# Setting seed for reproducibility
+set.seed(123)
+
+# Fit a random forest model
+rf_model <- randomForest(Risk ~ ., data = dataset)
+var_imp <- importance(rf_model)
+var_imp_df <- data.frame(variables = row.names(var_imp), var_imp)
+
+# Sorting variables based on importance
+var_imp_df <- var_imp_df[order(var_imp_df$MeanDecreaseGini, decreasing = TRUE),]
+
+# Plotting variable importance using ggplot2
+ggplot(var_imp_df, aes(x = reorder(variables, MeanDecreaseGini), y = MeanDecreaseGini)) +geom_col() +
+  coord_flip() +
+  labs(title = "Feature Importance",
+       x = "Features",
+      y = "Importance (Mean Decrease in Gini)")
+
+```
+
+The graph shows that 'Age' and 'Systolic' are key variables influencing our model's predictions of 'Risk'. while variables like isHypertensive, isBlack were found to have the least impact on the model's predictive capability.
+
+Overall, we think it's a good practice to make use of all our features as recommended by RFE, particularly when we are dealing with a modest number, to avoid potential overfitting.
