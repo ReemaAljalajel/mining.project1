@@ -493,7 +493,7 @@ print(conf_matrix)
 
 # Calculate performance metrics
 accuracy_G1 <- sum((diag(conf_matrix)) / sum(conf_matrix))
-error_rate_G1 <-( 1 - accuracy)
+error_rate_G1 <-( 1 - accuracy_G1)
 sensitivity_G1 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
 specificity_G1 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
 precision_G1 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
@@ -507,10 +507,10 @@ cat("Specificity: ", specificity_G1, "\n")
 cat("Precision: ", precision_G1, "\n")
         
 ```
+
 **Analysis:**
--   The model is highly effective in distinguishing between Low risk and High risk cases, with high          accuracy, precision and recall.
--   The most common misclassification occurs in distinguishing between Intermediate and High risk, with      31 cases of Intermediate being incorrectly classified as High.
--   Misclassifications between Low and Borderline risks are relatively low.
+
+\- The C4.5 decision tree, employing the gain ratio criterion, showcases robust performance on our dataset with an accuracy of 78.38%. Its ability to effectively capture complex relationships is reflected in the tree's structure, consisting of 219 nodes and 110 leaves. Notably, the model demonstrates a balanced trade-off between sensitivity (73.72%) and specificity (79.92%), indicating its proficiency in correctly identifying positive and negative instances. With a precision of 74.19%, the model reliably makes accurate positive predictions.
 
 2-partition the data into ( 70% training, 30% testing):
 
@@ -536,6 +536,7 @@ print(C45Fit)
 plot(C45Fit)
 
 
+#
 # Make predictions using the J48 model on the test data
 testPred <- predict(C45Fit, newdata = testData)
 
@@ -548,7 +549,7 @@ print(conf_matrix)
 
 # Calculate performance metrics
 accuracy_G2 <- sum((diag(conf_matrix)) / sum(conf_matrix))
-error_rate_G2 <-( 1 - accuracy)
+error_rate_G2 <-( 1 - accuracy_G2)
 sensitivity_G2 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
 specificity_G2 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
 precision_G2 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
@@ -562,6 +563,10 @@ cat("Specificity: ", specificity_G2, "\n")
 cat("Precision: ", precision_G2, "\n")
            
 ```
+
+**Analysis:**
+
+The C4.5 decision tree, employing the gain ratio criterion, exhibits strong predictive accuracy with an impressive 79.39%. Characterized by 261 nodes and 131 leaves, the tree's depth allows it to capture intricate patterns within the data. Notably, the model strikes a balance between sensitivity (78%) and specificity (79.78%), showcasing its ability to effectively identify positive and negative instances. With a precision of 72.90%, the model demonstrates accuracy in positive predictions.
 
 3-partition the data into ( 80% training, 20% testing):
 
@@ -598,7 +603,7 @@ print(conf_matrix)
 
 # Calculate performance metrics
 accuracy_G3 <- sum((diag(conf_matrix)) / sum(conf_matrix))
-error_rate_G3 <-( 1 - accuracy)
+error_rate_G3 <-( 1 - accuracy_G3)
 sensitivity_G3 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
 specificity_G3 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
 precision_G3 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
@@ -613,39 +618,53 @@ cat("Precision: ", precision_G3, "\n")
            
 ```
 
+**Analysis:**
+
+The C4.5 decision tree, employing the gain ratio criterion, demonstrates a commendable accuracy of 81.01%. With a substantial tree size of 305 and 153 leaves, the model captures nuanced relationships within the dataset. Its predictive prowess is evident in the balanced sensitivity (78.26%) and specificity (81.78%), highlighting its ability to correctly identify both positive and negative instances. The precision of 71.05% emphasizes the accuracy of positive predictions. This collectively positions the C4.5 decision tree as a robust and effective choice for classification on our dataset, showcasing its capability to achieve high accuracy and reliable predictions.
+
+#### After we have created a decision tree using the Gain ratio of three different sizes, we will now calculate the comparison between the three models
+
 ```{r}
-# Create data frames for each summary
-summary1 <- data.frame(
-  Model = "60% training 40% testing",
-  Accuracy = paste0(round(accuracy_G1 * 100, 2), "%"),
-  Sensitivity = paste0(round(sensitivity_G1 * 100, 2), "%"),
-  Specificity = paste0(round(specificity_G1 * 100, 2), "%"),
-  Precision = paste0(round(precision_G1 * 100, 2), "%")
+# Create data frames for each model's summary
+summary_c4.5_1 <- data.frame(
+  Model = "60% training, 40% testing",
+  Accuracy = 78.38,
+  Sensitivity = 73.72,
+  Specificity = 79.92,
+  Precision = 74.19
 )
 
-summary2 <- data.frame(
+summary_c4.5_2 <- data.frame(
   Model = "70% training, 30% testing",
-  Accuracy = paste0(round(accuracy_G2 * 100, 2), "%"),
-  Sensitivity = paste0(round(sensitivity_G2 * 100, 2), "%"),
-  Specificity = paste0(round(specificity_G2 * 100, 2), "%"),
-  Precision = paste0(round(precision_G2 * 100, 2), "%")
+  Accuracy = 79.39,
+  Sensitivity = 78.0,
+  Specificity = 79.78,
+  Precision = 72.90
 )
 
-summary3 <- data.frame(
-  Model = " 80% training 20% testing",
-  Accuracy = paste0(round(accuracy_G3 * 100, 2), "%"),
-  Sensitivity = paste0(round(sensitivity_G3 * 100, 2), "%"),
-  Specificity = paste0(round(specificity_G3 * 100, 2), "%"),
-  Precision = paste0(round(precision_G3 * 100, 2), "%")
+summary_c4.5_3 <- data.frame(
+  Model = "80% training, 20% testing",
+  Accuracy = 81.01,
+  Sensitivity = 78.26,
+  Specificity = 81.78,
+  Precision = 71.05
 )
 
-# Combine summaries into a single data frame
-comparison_table <- rbind(summary1, summary2, summary3)
+# Combine the summaries into a single data frame
+comparison_table <- rbind(summary_c4.5_1, summary_c4.5_2, summary_c4.5_3)
 
 # Print the comparison table
 print(comparison_table)
 
 ```
+
+In our exploration of decision tree models---specifically, C4.5 with varying numbers of training-testing ---we aimed to identify the optimal configuration for accurate and reliable predictions. The results indicate that the model with (80% training, 20% testing) stands out, achieving the highest accuracy at 81.01%. This particular configuration strikes a balance between sensitivity (78.26%), specificity (81.78%), and precision (71.05%), making it a robust choice for the classification task at hand.
+
+It's noteworthy that the model with (70% training, 30% testing) also performs well, showcasing competitive accuracy (79.39%) and a balanced trade-off between sensitivity and specificity. However, the model with (60% training, 40% testing) surpasses it, demonstrating superior sensitivity and precision.
+
+In contrast, the model with (60% training, 40% testing), while achieving a respectable accuracy of 78.38%, exhibits slightly lower sensitivity and precision. This suggests that a more complex tree structure, as seen in the model with (80% training, 20% testing), contributes to better capturing the underlying patterns in the data.
+
+In conclusion, the C4.5 decision tree with (80% training, 20% testing) emerges as the preferred model for this specific dataset and classification task. Its superior performance in terms of accuracy, sensitivity, specificity, and precision underscores its suitability for making reliable predictions.
 
 #### Decision tree using Information gain
 
@@ -690,7 +709,7 @@ print(conf_matrix)
 
 # Calculate performance metrics
 accuracy_I1 <- sum((diag(conf_matrix)) / sum(conf_matrix))
-error_rate_I1 <-( 1 - accuracy)
+error_rate_I1 <-( 1 - accuracy_I1)
 sensitivity_I1 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
 specificity_I1 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
 precision_I1 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
@@ -703,15 +722,15 @@ cat("Specificity: ", specificity_I1, "\n")
 cat("Precision: ", precision_I1, "\n")
 ```
 
-**Analysis:** The C5 model demonstrates strong predictive capabilities with an accuracy of 76.15%. It effectively identifies instances of low risk (sensitivity of 78.87%) and maintains high specificity (75.36%) in recognizing non-low-risk instances. The precision of 72.26% highlights the accuracy of positive predictions. The model's tree structure, comprising 120 nodes, reflects its complexity in capturing patterns within the data. These results suggest a well-balanced model with the potential for reliable classification across multiple risk categories.
+**Analysis:** The C5 model demonstrates strong predictive capabilities with an accuracy of 78.37%. It effectively identifies instances of low risk (sensitivity of 80.6%) and maintains high specificity (77.6%) in recognizing non-low-risk instances. The precision of 72.26% highlights the accuracy of positive predictions. The model's tree structure, comprising 120 nodes, reflects its complexity in capturing patterns within the data. These results suggest a well-balanced model with the potential for reliable classification across multiple risk categories.
 
 2-partition the data into ( 70% training, 30% testing):
 
 ```{r}
 set.seed(1234)
-ind=sample (2, nrow(dataset), replace=TRUE, prob=c(0.70 , 0.30))
-trainData=dataset[ind==1,]
-testData=dataset[ind==2,]
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.70 , 0.30))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
 
 ```
 
@@ -742,7 +761,7 @@ print(conf_matrix)
 
 # Calculate performance metrics
 accuracy_I2 <- sum((diag(conf_matrix)) / sum(conf_matrix))
-error_rate_I2 <-( 1 - accuracy)
+error_rate_I2 <-( 1 - accuracy_I2)
 sensitivity_I2 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
 specificity_I2 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
 precision_I2 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
@@ -756,15 +775,15 @@ cat("Precision: ", precision_I2, "\n")
 
 ```
 
-**Analysis:** The C5 model achieved an accuracy of 64.90%, indicating its ability to make correct predictions across all classes. It demonstrates good sensitivity (75.20%), effectively identifying instances of high risk. However, the model's specificity (57.63%) suggests room for improvement in correctly identifying non-high-risk instances. The precision of 78.99% reflects the accuracy of positive predictions. The tree structure, comprising 81 nodes, signifies a moderate level of complexity. Overall, while the model performs reasonably well, there may be opportunities for refinement, particularly in specificity.
+**Analysis:** The C5 model achieved an accuracy of 78.07%, demonstrating its proficiency in making correct predictions across all classes. It exhibits robust sensitivity (77.23%), effectively identifying instances of high risk. The model's specificity (78.31%) suggests improved accuracy in correctly identifying non-high-risk instances compared to the previous configuration. The precision of 72.90% reflects the accuracy of positive predictions. The tree structure, comprising 125 nodes, signifies a moderate level of complexity. Overall, the model performs well, with enhanced specificity, showcasing its suitability for this classification task.
 
-3-partition the data into ( 80% training, 20% testing):
+3-partition the data into ( 80% training, 20% testing):sting):
 
 ```{r}
 set.seed(1234)
-ind=sample (2, nrow(dataset), replace=TRUE, prob=c(0.80 , 0.20))
-trainData=dataset[ind==1,]
-testData=dataset[ind==2,]
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.80 , 0.20))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
 
 ```
 
@@ -795,7 +814,7 @@ print(conf_matrix)
 
 # Calculate performance metrics
 accuracy_I3 <- sum((diag(conf_matrix)) / sum(conf_matrix))
-error_rate_I3 <-( 1 - accuracy)
+error_rate_I3 <-( 1 - accuracy_I3)
 sensitivity_I3 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
 specificity_I3 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
 precision_I3 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
@@ -808,26 +827,26 @@ cat("Specificity: ", specificity_I3, "\n")
 cat("Precision: ", precision_I3, "\n")   
 ```
 
-**Analysis:** The C5 model achieved an accuracy of 64.42%, signifying its overall correctness in predicting the target variable. Notably, the model demonstrates strong sensitivity (73.03%), effectively capturing instances of high risk. The specificity (57.98%) suggests room for improvement in correctly identifying non-high-risk instances. The precision of 84.42% highlights the accuracy of positive predictions, particularly in the high-risk category. The tree structure, comprising 92 nodes, indicates a moderate level of complexity. While the model exhibits favorable precision, further refinement in specificity could enhance its overall performance.
+**Analysis:** The C5 model achieved an accuracy of 64.42%, showcasing its ability to make correct predictions across all classes. It exhibits strong sensitivity (73.03%), effectively identifying instances of high risk. However, the model's specificity (57.98%) suggests potential for improvement in correctly identifying non-high-risk instances. The precision of 84.42% reflects the accuracy of positive predictions. The tree structure, comprising 92 nodes, indicates a moderate level of complexity. While the model performs reasonably well, there may be opportunities for refinement, particularly in specificity. Overall,The model's strength lies in identifying clear cases (Low and High risk) .
 
-##After we constcut a three Decision tree using information gain with 3 differnte sizes, now we are going to compute a comperison between the three model's
+#### After we have created a decision tree using the Information gain of three different sizes, we will now calculate the comparison between the three models
 
 ```{r}
 # Create data frames for each model's summary
 summary1 <- data.frame(
   Model = "60%training 40%testing",
-  Accuracy = 64.90,
-  Sensitivity = 75.20,
-  Specificity = 57.63,
-  Precision = 78.99
+  Accuracy = 78.37,
+  Sensitivity = 80.6,
+  Specificity = 77.6,
+  Precision = 72.26
 )
 
 summary2 <- data.frame(
   Model = "70%training 30%testing",
-  Accuracy = 64.42,
-  Sensitivity = 73.03,
-  Specificity = 57.98,
-  Precision = 84.42
+  Accuracy =  78.07,
+  Sensitivity = 77.23,
+  Specificity = 78.31,
+  Precision = 72.90
 )
 
 summary3 <- data.frame(
@@ -849,17 +868,11 @@ print(comparison_table)
 
 **Analysis:**
 
--   All three models exhibit similar accuracies, ranging from 64.42% to 64.90%.
-
--   Sensitivity (Recall) is consistent across the models, with values around 73% to 75%, indicating their ability to capture positive instances.
-
--   Specificity ranges from 57.63% to 57.98%, suggesting room for improvement in correctly identifying negative instances.
-
--   Precision varies, with the 70% training 30% testing model showing the highest precision at 84.42%.
+-   All three C5 models exhibit distinctive performance metrics. The 60% training 40% testing model achieves an accuracy of 64.90%, with a sensitivity of 75.20% and specificity of 57.63%. The 70% training 30% testing model shows an accuracy of 64.42%, sensitivity of 73.03%, and specificity of 57.98%. The 80% training 20% testing model has an accuracy of 64.42%, sensitivity of 73.03%, and specificity of 57.98%. While accuracies are comparable, the 70% training 30% testing model displays slightly higher sensitivity and precision, making it a potential choice.
 
 **Conclusion:**
 
--   The choice between the models depends on the specific goals and trade-offs. If precision is a critical factor, the 70% training 30% testing model may be preferred. However, further optimization is possible to enhance specificity across all models. Consider adjusting model parameters or exploring additional features to improve overall performance.
+-   Selecting the optimal C5 model depends on specific objectives. If prioritizing sensitivity and precision, the 70% training 30% testing model stands out. However, overall performance improvements could be achieved by refining model parameters or exploring additional features. Further optimization is recommended to enhance specificity across all models.
 
 ### Decision Tree using Gini Index
 
@@ -895,7 +908,7 @@ print(conf_matrix_rpart)
 
 # Calculate performance metrics
 accuracy_D1 <- sum(diag(conf_matrix)) / sum(conf_matrix)
-error_rate_D1 <- 1 - accuracy
+error_rate_D1 <- 1 - accuracy_D1
 sensitivity_D1 <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
 specificity_D1 <- sum(diag(conf_matrix[-2, -2])) / sum(conf_matrix[-2, ])
 precision_D1 <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
@@ -911,7 +924,7 @@ cat("Precision: ", precision_D1, "\n")
 
 **Analysis:**
 
-The results obtained from the rpart model showcase a balanced performance across various risk categories. The model achieved an overall accuracy of 57.39%, indicating its ability to make correct predictions across all classes. Sensitivity, measuring the model's capability to identify positive instances, is at 50.81%, demonstrating a reasonable ability to detect true positives. Specificity stands at 60.14%, indicating the model's proficiency in correctly identifying negative instances. The precision of 53.41% signifies the accuracy of positive predictions. While the model exhibits a moderate performance, further refinement or exploration of alternative models could enhance predictive capabilities depending on the specific goals and requirements of the analysis.
+The results obtained from the rpart model showcase a balanced performance across various risk categories. The model achieved an overall accuracy of 57.39%, indicating its ability to make correct predictions across all classes. Sensitivity, measuring the model's capability to identify positive instances, is at 50.81%, demonstrating a reasonable ability to detect true positives. Specificity stands at 60.14%, indicating the model's proficiency in correctly identifying negative instances. The precision of 53.41% signifies the accuracy of positive predictions.
 
 2-partition the data into ( 70% training, 30% testing):
 
@@ -942,7 +955,7 @@ print(conf_matrix)
 
 # Calculate performance metrics
 accuracy_D2 <- sum(diag(conf_matrix)) / sum(conf_matrix)
-error_rate_D2 <- 1 - accuracy
+error_rate_D2 <- 1 - accuracy_D2
 sensitivity_D2 <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
 specificity_D2 <- sum(diag(conf_matrix[-2, -2])) / sum(conf_matrix[-2, ])
 precision_D2 <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
@@ -959,7 +972,7 @@ cat("Precision: ", precision_D2, "\n")
 
 **Analysis:**
 
-The results from the RPART model reveal a well-balanced performance across different risk categories. The model achieved an overall accuracy of 60.31%, indicating its proficiency in making accurate predictions across all classes. Notably, it demonstrated a sensitivity of 55.10%, effectively identifying instances of low risk, and a specificity of 62.78%, accurately recognizing non-low-risk instances. The precision of 64.29% underscores the model's accuracy in positive predictions. While the model exhibits a satisfactory performance, there may be opportunities for further refinement or exploration of alternative models to enhance predictive capabilities, depending on the specific objectives and requirements of the analysis.
+The results from the RPART model reveal a well-balanced performance across different risk categories. The model achieved an overall accuracy of 60.31%, indicating its proficiency in making accurate predictions across all classes. Notably, it demonstrated a sensitivity of 55.10%, effectively identifying instances of low risk, and a specificity of 62.78%, accurately recognizing non-low-risk instances. The precision of 64.29% underscores the model's accuracy in positive predictions.
 
 3-partition the data into ( 80% training, 20% testing):
 
@@ -990,7 +1003,7 @@ print(conf_matrix)
 
 # Calculate performance metrics
 accuracy_D3 <- sum(diag(conf_matrix)) / sum(conf_matrix)
-error_rate_D3 <- 1 - accuracy
+error_rate_D3 <- 1 - accuracy_D3
 sensitivity_D3 <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
 specificity_D3 <- sum(diag(conf_matrix[-2, -2])) / sum(conf_matrix[-2, ])
 precision_D3 <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
@@ -1006,9 +1019,9 @@ cat("Precision: ", precision_D3, "\n")
 
 **Analysis:**
 
-The outcomes of the RPART model showcase a discernible performance across distinct risk categories. The model achieved an overall accuracy of 54.75%, highlighting its capability to make correct predictions across all classes. Specifically, it demonstrated a sensitivity of 51.02%, effectively identifying instances of low risk, and a specificity of 56.42%, accurately recognizing non-low-risk instances. The precision of 54.35% emphasizes the model's accuracy in positive predictions. While the model exhibits a moderate performance, there may be room for further optimization or exploration of alternative models to enhance predictive capabilities, taking into account the specific goals and requirements of the analysis.
+The outcomes of the RPART model showcase a discernible performance across distinct risk categories. The model achieved an overall accuracy of 54.75%, highlighting its capability to make correct predictions across all classes. Specifically, it demonstrated a sensitivity of 51.02%, effectively identifying instances of low risk, and a specificity of 56.42%, accurately recognizing non-low-risk instances. The precision of 54.35% emphasizes the model's accuracy in positive predictions.
 
-##After we have created a decision tree using the Gini index of three different sizes, we will now calculate the comparison between the three models.
+#### After we have created a decision tree using the Gini index of three different sizes, we will now calculate the comparison between the three models
 
 ```{r}
 # Create data frames for each summary
@@ -1057,7 +1070,7 @@ print(comparison_table)
 
 ### Classification conclusion:
 
-the C5 model using information gain emerged as the preferred choice. The C5 model exhibited superior predictive performance with a higher accuracy, sensitivity, specificity, and precision compared to the other models. The decision to favor C5 is grounded in its ability to capture both positive and negative instances effectively, making it well-suited for the dataset characteristics.
+the C4.5 model using Gain ratio emerged as the preferred choice. The C4.5 model exhibited superior predictive performance with a higher accuracy of 81.78% in the (80% training, 20% testing) partitioning , sensitivity, specificity, and precision compared to the other models. The decision to favor C4.5 is grounded in its ability to capture both positive and negative instances effectively, making it well-suited for the dataset characteristics. The model's strength lies in identifying clear cases (Low and High risk).
 
 ## 7- Clustering
 
@@ -1087,6 +1100,8 @@ str(cdataset)
 #### Determining the optimal number of clusters:
 
 ```{r}
+library(factoextra)
+cdataset <- scale(cdataset)
 fviz_nbclust(cdataset, kmeans, method = "silhouette")+ labs(subtitle = "silhouette method")
 ```
 
@@ -1296,7 +1311,7 @@ The calculated recall value is 0.2729542 it's a low result meaning most of the d
 
 **Conclusion of K=4:**
 
-After applying various evaluation metrics such as the average silhouette coefficient, within-cluster sum of squares ,Bcubed precision and recall.it became clear to us that k=4 Is not a good number of clusters since there is overlapping and the clusters are not pure .And the within cluster sum of square 4 clusters has a higher value than 2 cluster indicating that clusters less compact .but According to the number of class label its the best among the considered options.
+After applying various evaluation metrics such as the average silhouette coefficient, within-cluster sum of squares ,Bcubed precision and recall.it became clear to us that k=4 Is not a good number of clusters since there is overlapping and the clusters are not pure .And the within cluster sum of square 4 clusters has a higher value than 2 cluster indicating that the 4 clusters less compact .but According to the number of class label its the best among the considered options.
 
 #### Clustering K=8 :
 
@@ -1389,9 +1404,9 @@ recall <- precision_recall$recall
 cat(" BCubed Precision:", precision, "\n","BCubed Recall:", recall)
 ```
 
-The calculated precision value is 0.36487 not a high value it mean the clusters are not pure.
+The calculated precision value is 0.37478 not a high value it mean the clusters are not pure.
 
-The calculated recall value is 0.21212 it's a low result meaning most of the data are not in the same cluster.
+The calculated recall value is 0.15541 it's a low result meaning most of the data are not in the same cluster.
 
 **Conclusion of K=8:**
 
@@ -1408,4 +1423,4 @@ fviz_nbclust(cdataset, kmeans, method = "silhouette")+
 fres.nbclust <- NbClust(cdataset, distance="euclidean", min.nc = 2, max.nc = 10, method="kmeans", index="all")
 ```
 
-According to the NbClust validation method, which utilizes the majority rule, the best number of clusters is 4. This number contradicts the initial suggestion from the silhouette method, which indicated that the best number of clusters is 2. However, upon revisiting the calculations and evaluating the performance, it is accurate to conclude that K=4 indeed performs the best among the considered options.
+According to the NbClust validation method, which utilizes the majority rule, the best number of clusters is 4. This number contradicts the initial suggestion from the silhouette method, which indicated that the best number of clusters is 2. However, upon revisiting the calculations and evaluating the performance, it is almost accurate to conclude that K=4 indeed performs the best among the considered options.
