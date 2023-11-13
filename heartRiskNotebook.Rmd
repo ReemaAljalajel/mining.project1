@@ -1,0 +1,1411 @@
+---
+title: "Heart Risk"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+## **Goal of Collecting this Dataset:**
+
+Our goal is to predict 10-year ASCVD risk in adults using key features such as age, gender, race, smoking status, diabetes, hypertension, and cholesterol levels. The dataset aims to facilitate accurate risk assessments and guide targeted preventive healthcare interventions.
+
+#### Source of the dataset: [HeartRisk](https://www.kaggle.com/datasets/mokar2001/ascvd-heart-risk)
+
+It consist of 1000 row that each have 10 attributes.
+
+#### Class label:
+
+"Risk"; 10-year risk for ASCVD which is categorized as:
+
+Low-risk (\<5%)\
+Borderline risk (5% to 7.4%)\
+Intermediate risk (7.5% to 19.9%)\
+High risk (≥20%)
+
+#### Type of attributes:
+
+```{r echo=FALSE}
+my_table <- data.frame(Attribute_Name= c("isMale","isBlack","isSmoker","isDiabetic","isHypertensive","Age","Systolic","Cholesterol","HDL","Risk  (class label)"), Description= c("Gender","Race","Smoking Status","Diabetes Status","Hypertension Status","Age of the candidate","Max Blood Pressure","Total Cholesterol","HDL Cholesterol","10-year ASCVD Risk"), Data_Type= c("Binary","Binary","Binary","Binary","Binary","Numeric (Integer)","Numeric (Integer)","Numeric (Integer)","Numeric (Integer)","Numeric (Decimal)"), Possible_Values= c("0 (Female), 1 (Male)","0 (Not Black), 1 (Black)","0 (Non-smoker), 1 (Smoker)","0 (Normal), 1 (Diabetic)","0 (Normal BP), 1 (High BP)","Range between 40-79","Range between 90-200","Range between 130-200","Range between 20-100","Low, Borderline, Intermediate, High risk"), stringsAsFactors = FALSE)
+colnames(my_table) <- c("Attribute_Name","Description","Data_Type","Possible_Values")
+print(my_table)
+```
+
+#### Table that shows our Dataset before any modifications:
+
+```{r}
+library(caret)
+
+dataset <- read.csv("heartRisk.csv")
+print(dataset)
+```
+
+#### The structure of the dataset provides a top-level view of the variables it contains, by understanding the structure of the dataset and the attributes it contains, we can better analyze and interpret the data to gain insights into the relationship between these variables and the 10-year ASCVD risk:
+
+```{r}
+str(dataset)
+```
+
+#### Dataset dimensions:
+
+```{r}
+dim(dataset)
+```
+
+-   **Number of rows = 1000 , Number of columns = 10**
+
+#### To summarize the descriptive statistics for all the columns in the dataset, we can calculate various statistical measures for each attribute:
+
+```{r}
+library(Hmisc)
+describe(dataset)
+```
+
+#### To have a better understanding of the values in our Dataset, we applied various statistical measures to the attributes. These measures provide insights into different aspects of the data:
+
+```{r}
+summary(dataset)
+```
+
+#### We measured the Variance for all numeric attributes to see the degree of spread in the dataset:
+
+```{r}
+var(dataset$Age)
+var(dataset$Systolic)
+var(dataset$Cholesterol)
+var(dataset$HDL)
+var(dataset$Risk)
+```
+
+**All the attributes' variance results are higher than their mean values, which implies that the dataset has greater variability and is more heterogeneous. This might indicate that the values in our dataset are more scattered; have a wider range of values, potentially suggesting a more diverse or varied pattern in the data.**
+
+### Scatter Plot:
+
+```{r}
+library(ggplot2)
+
+ggplot(dataset, aes(x = Age, y =Systolic, color= 'red'))+
+  geom_point() +
+  xlab("Age") +
+  ylab("Blood Pressure")
+```
+
+In order to gain a deeper understanding of our dataset, we examined the attributes "Systolic" and "Age" to determine if there was a predictive or correlational relationship between them. However, after analyzing the scatter plot, we discovered that there is no discernible relationship or correlation between these two attributes.
+
+```{r}
+
+ggplot(dataset, aes(x = Systolic, y = Risk)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, aes(color = "Regression Line")) +
+  facet_wrap(~cut(Age, 3), scales = "free") +
+  xlab("Systolic Blood Pressure") +
+  ylab("Risk") +
+  ggtitle("Relationship between Systolic Blood Pressure and Risk at Different Age Levels") +
+  theme_minimal()
+
+```
+
+However, notable association between 'Systolic Blood Pressure', 'Age', and 'Risk', segmented into various age categories. It shows that risk notably rises with age and Blood Pressure,as the regression line for the age bracket (66,79] exhibits higher risks, indicating a high correlation between advancing age and elevated risk levels in this dataset.
+
+### Density Plot:
+
+```{r}
+library(tidyr)
+
+dataset_long <- gather(dataset, key = "column", value = "value", Age:ncol(dataset))
+
+ggplot(dataset_long, aes(x = value, fill = column)) +
+  geom_density(alpha = 0.7) +
+  facet_wrap(~column, scales = "free") +
+  xlab("Value") +
+  ylab("Density")
+```
+
+**To understand the relative frequency of different values within our dataest we measeured the density, and analyzed the corresponding graphs. Here are the observations we made:**
+
+\- The graph representing the distribution of ages shows a reasonable representation of ages between 40 and 80 within the dataset. This suggests that the age values are well-distributed within this range.
+
+\- Both the density graphs for cholesterol and HDL indicate a slight skew towards lower cholesterol levels. This suggests that the majority of the data points tend to have lower cholesterol values rather than higher ones.
+
+\- The density graph for systolic blood pressure displays a uniform distribution across the entire range of blood pressures. This indicates that the data points are evenly spread out without any significant concentration in specific pressure ranges.
+
+\- The density graph for the risk variable exhibits a positively skewed (right-skewed) distribution. This implies that there is a higher frequency of data points with lower risk values, while the occurrence of higher risk values is relatively less frequent.
+
+### Bar Plot visualization for the 'isSmoker' attribute:
+
+```{r}
+bb <- dataset$isSmoker %>% table() %>%
+barplot(bb , col = c("lightgreen","darkred"), width= c(4,4.1),space=0.1, names.arg=c("o","1"), legend.text = c("Non-Smoker","Smoker"))
+
+```
+
+To better understand the smoking status within our dataset, we visualized the data using a bar plot. This visualization was chosen to provide a clear and easily interpretable representation of the differences in smoking status. From the bar plot, we observed that the numbers are nearly evenly distributed between non-smokers (0) and smokers (1). This indicates that there is a balanced representation of individuals who are non-smokers and smokers in the dataset.
+
+### Matrix measurement of the correlation in our dataset:
+
+```{r}
+library(corrplot)
+
+corr_matrix <- cor(dataset)
+corrplot(corr_matrix, method = "color", type = "lower", tl.col = "black", tl.srt = 45, 
+          addCoef.col = "black", number.cex = 0.7, tl.cex = 0.7, col = colorRampPalette(c("white", "lightblue"))(90))
+```
+
+By analyzing the correlation matrix of our dataset, we can identify suspicious events and patterns in the data. However, it is evident that there are no strong correlations among the features in the dataset. Despite this, we can rank the correlations in descending order based on their impact on the risk of heart disease.The order of correlations, from highest to lowest in terms of their influence on heart disease risk, is as follows: Age, Systolic blood pressure, is Diabetic, is Smoker, is Hypertensive, gender is male, , race is black, Cholestrol, HDL.
+
+### Box Plot:
+
+```{r}
+boxplot(dataset$Age)
+```
+
+The Age boxplot shows a wide range of values that might lead to a lower accuracy of the results when it comes to clculations so we need change it to a standardized range. Additionally, the boxplot analysis indicates that there are no outliers present in the Age attribute. This implies that the Age data points are within a reasonable range and do not deviate significantly from the overall distribution of values.
+
+```{r}
+boxplot(dataset$Systolic)
+```
+
+The boxplot analysis of the Systolic blood pressure attribute reveals the absence of outliers, indicating that the data points are within a reasonable range without any extreme values. However, it is worth noting that the range of Systolic blood pressure is considerably large. To ensure accurate calculations and mitigate potential conflicts, it is recommended to transform the Systolic blood pressure into a smaller and standardized range. This transformation will help normalize the data and make it more suitable for analysis and calculations.
+
+```{r}
+boxplot(dataset$Cholesterol)
+```
+
+According to the boxplot analysis of the Cholesterol attribute, no outliers are observed, suggesting that the data points are within a reasonable range without any extreme values. However, it is important to narrow down the range of values to optimize the accuracy of our calculations. By reducing the range of Cholesterol values, we can improve the reliability and precision of our dataset, enabling us to obtain more reliable and meaningful results.
+
+```{r}
+boxplot(dataset$HDL)
+```
+
+The HDL boxplot reveal that there are no outlires shown. However, it is necessary to transform the range of HDL values to bring them into a standardized and common range. By performing this transformation, we can almost ensure to have better insights and improved data quality.
+
+------------------------------------------------------------------------
+
+### 2-Data cleaning
+
+#### 2.1 Missing values:
+
+**Since missing/null values can affect the dataset badly we decided to check it and delete all missing/null values from our dataset to make it as clean as possible so that we can end up with efficint dataset resulting to a higher possibiliaty of accurete results later on.**
+
+```{r}
+# Check for missing values
+missing_values <- colSums(is.na(dataset))
+
+# Print columns with missing values
+print("Columns with missing values:")
+print(names(missing_values)[missing_values > 0])
+
+# Print the count of missing values for each column
+print("Count of missing values for each column:")
+print(missing_values)
+
+```
+
+##### The analysis revealed that there are no missing values across any of the attributes.
+
+#### 2.2 Detecting and removing outliers:
+
+In data analysis, checking and removing outliers is crucial to ensure the reliability of statistical insights. Outliers, as extreme data points, can distort summary statistics, potentially leading to inaccurate analyses. By identifying and, if necessary, removing outliers, we enhance the robustness of our findings.
+
+```{r}
+
+# Compute IRQ
+Q1 <- quantile(dataset$Age, 0.25)
+Q3 <- quantile(dataset$Age, 0.75)
+IQR <- Q3 - Q1
+
+# Identify outliers
+lower_bound <- Q1 - (1.5 * IQR)
+upper_bound <- Q3 + (1.5 * IQR)
+outliers <- which(dataset$Age < lower_bound | dataset$Age > upper_bound)
+
+# Get the number of outliers
+num_outliers <- length(outliers)
+print(paste("Number of Age outliers:", num_outliers))
+
+# Compute IRQ
+Q1 <- quantile(dataset$Systolic, 0.25)
+Q3 <- quantile(dataset$Systolic, 0.75)
+IQR <- Q3 - Q1
+
+# Identify outliers
+lower_bound <- Q1 - (1.5 * IQR)
+upper_bound <- Q3 + (1.5 * IQR)
+outliers <- which(dataset$Systolic < lower_bound | dataset$Systolic > upper_bound)
+
+# Get the number of outliers
+num_outliers <- length(outliers)
+print(paste("Number of Systolic outliers:", num_outliers))
+
+# Compute IRQ
+Q1 <- quantile(dataset$Cholesterol, 0.25)
+Q3 <- quantile(dataset$Cholesterol, 0.75)
+IQR <- Q3 - Q1
+
+# Identify outliers
+lower_bound <- Q1 - (1.5 * IQR)
+upper_bound <- Q3 + (1.5 * IQR)
+outliers <- which(dataset$Cholesterol < lower_bound | dataset$Cholesterol > upper_bound)
+
+# Get the number of outliers
+num_outliers <- length(outliers)
+print(paste("Number of Cholesterol outliers:", num_outliers))
+
+# Compute IRQ
+Q1 <- quantile(dataset$HDL, 0.25)
+Q3 <- quantile(dataset$HDL, 0.75)
+IQR <- Q3 - Q1
+
+# Identify outliers
+lower_bound <- Q1 - (1.5 * IQR)
+upper_bound <- Q3 + (1.5 * IQR)
+outliers <- which(dataset$HDL < lower_bound | dataset$HDL > upper_bound)
+
+# Get the number of outliers
+num_outliers <- length(outliers)
+print(paste("Number of HDL outliers:", num_outliers))
+
+```
+
+The result indicates that there are no outliers, but we will also use a box plot to ensure that there are no outliers.
+
+```{r}
+boxplot(dataset[,c(6,7,8,9)], main="Boxplot with Outliers", col=c("lightblue","lightblue","lightblue","lightblue"))
+
+```
+
+By using the box plot we can see that there are no outliers in the data set.
+
+------------------------------------------------------------------------
+
+## 3-Data reduction
+
+In analyzing the dataset,The initial dataset provided a comprehensive and relevant set of information for the research objectives without the need for removal or condensation of variables.
+
+used the findCorrelation function in caret library to outputs the index of variables we need to delete. targeting any pair with a correlation coefficient exceeding 0.75.
+
+```{r}
+findCorrelation(cor(dataset), cutoff=0.75)
+```
+
+In our case, the function finds out that no feature need to be deleted.
+
+------------------------------------------------------------------------
+
+### 4-Data transformation
+
+#### 4.1 normalization
+
+Data normalization is a preprocessing step that involves transforming numerical data within a dataset to a standard, uniform scale. This process ensures that all variables, regardless of their original units or scales, are brought into a consistent and comparable range. the following attributes were selected for normalization:(age, systolic, cholestrol, HDL)
+
+```{r}
+normalize <- function(x)
+{
+  return ((x - min(x))/ (max(x)- min(x)) )
+}
+
+dataset$Age<-normalize(dataset$Age)
+dataset$Systolic<-normalize(dataset$Systolic)
+dataset$Cholesterol<-normalize(dataset$Cholesterol)
+dataset$HDL<-normalize(dataset$HDL)
+
+head(dataset)
+```
+
+we have successfully completed the data normalization. This process entailed scaling our numerical features to a standardized range, typically between 0 and 1.
+
+#### 4.2 Discretization
+
+To make our dataset understandable and easily interpretable, especially when using tree-based classification methods, we transformed the continuous class label 'Risk' into specific, categorized risk levels.
+
+These levels are delineated as:
+
+Low risk (\<5%), Borderline risk (5% to 7.4%), Intermediate risk (7.5% to 19.9%), and High risk (≥20%).
+
+```{r}
+# Categorize 'Risk' into defined categories
+dataset$Risk <- cut(
+  dataset$Risk, 
+  breaks = c(-Inf, 5, 7.4, 19.9, Inf),
+  labels = c("Low risk", "Borderline risk", "Intermediate risk", "High risk"),
+  right = FALSE,
+  include.lowest = TRUE
+)
+```
+
+our dataset after Discretization:
+
+```{r}
+head(dataset)
+```
+
+------------------------------------------------------------------------
+
+## 5- Feature selection
+
+Feature selection is one of the most important task to boost performance of our machine learning model by removing irrelevant features the model will make decisions only using important features. we will use Recursive Feature Elimination (RFE), which is a widely used wrapper-type algorithm for selecting features that are most relevant in predicting the target variable 'Risk' in our case.
+
+```{r echo=FALSE}
+library(ggcorrplot)
+library(caret)
+library(randomForest)
+library(gam)
+library(ggplot2)
+```
+
+```{r}
+
+# ensure results are repeatable
+set.seed(7)
+
+# Define RFE control parameters
+ctrl <- rfeControl(functions=rfFuncs, method="cv", number=10)
+
+# Execute RFE using dataset features 1-9 and "Risk" as the class lable
+results <- rfe(dataset[,1:9], dataset$Risk, sizes=c(1:9), rfeControl=ctrl)
+
+# Display RFE results
+print(results)
+
+
+```
+
+```{r}
+plot(results, type=c("g", "o"))
+```
+
+The asterisk (\*) in the column indicates the number of features recommended by RFE as yielding the best model according to the resampling results. it shows that when 9 variables are used, the model achieves the best accuracy of approximately 80% and a kappa value of 0.7.
+
+**The graphical representation of feature importance :**
+
+The "Mean Decrease Gini" score tells us how crucial a feature is for making accurate predictions in a Random Forest model. A higher score means the feature is more valuable in deciding how to classify the data correctly, helping the model make better decisions.
+
+```{r}
+
+# Setting seed for reproducibility
+set.seed(123)
+
+# Fit a random forest model
+rf_model <- randomForest(Risk ~ ., data = dataset)
+var_imp <- importance(rf_model)
+var_imp_df <- data.frame(variables = row.names(var_imp), var_imp)
+
+# Sorting variables based on importance
+var_imp_df <- var_imp_df[order(var_imp_df$MeanDecreaseGini, decreasing = TRUE),]
+
+# Plotting variable importance using ggplot2
+ggplot(var_imp_df, aes(x = reorder(variables, MeanDecreaseGini), y = MeanDecreaseGini)) +geom_col() +
+  coord_flip() +
+  labs(title = "Feature Importance",
+       x = "Features",
+      y = "Importance (Mean Decrease in Gini)")
+
+```
+
+The graph shows that 'Age' and 'Systolic' are key variables influencing our model's predictions of 'Risk'. while variables like isHypertensive, isBlack were found to have the least impact on the model's predictive capability.
+
+Overall, we think it's a good practice to make use of all our features as recommended by RFE, particularly when we are dealing with a modest number, to avoid potential overfitting.we
+
+------------------------------------------------------------------------
+
+# **phase-3**
+
+## balancing data
+
+Balancing data is crucial for improving the performance and fairness of machine learning models. When data are imbalanced, with one class significantly outnumbering the others, models tend to bias towards the majority class, leading to poor predictive accuracy for minority classes.
+
+#### Before balancing our data:
+
+```{r}
+# Calculate class distribution
+class_distribution <- table(dataset$Risk)
+# Create a bar plot
+barplot(class_distribution, 
+        main = "Class Distribution for Risk",
+        xlab = "Risk Level",
+        ylab = "Count",
+        names.arg = levels(dataset$Risk))
+
+```
+
+#### After balancing our data:
+
+```{r}
+
+library(ROSE)
+
+balanced_data <- upSample(dataset[, 1:9], dataset$Risk, yname = "Risk")
+# Plot the distribution of the "Risk" classes
+plot(balanced_data$Risk)
+
+# Check the proportion and count of "Risk" classes
+prop_table <- prop.table(table(balanced_data$Risk))
+count_table <- table(balanced_data$Risk)
+
+
+```
+
+After balancing our data, the model becomes more capable of providing accurate predictions, ensuring a fair evaluation of their performance.
+
+## **6- Classification**
+
+Classification analysis is a fundamental aspect of machine learning, focusing on categorizing data into distinct classes. In our study, we aim to build predictive models that efficiently assign predefined labels to new instances based on their features. To enhance the robustness of our models, we have divided the dataset into three sets: training, validation, and testing. By employing different proportions of training data---60%, 70%, and 80%---we seek to evaluate and compare the models' performances. This approach ensures a comprehensive understanding of model behavior under varying training scenarios, guiding us to select the most effective model for our specific dataset.
+
+#### -Decision tree using Gain ratio (C4.5):
+
+Gain ratio is a metric that assesses the quality of a split within decision tree algorithms. to evaluate the quality of a split based on the information gain and the intrinsic information of a feature.we have implemented the Gain Ratio (C4.5) algorithm and the J48 function from the RWeka package. This algorithm partitions our data into training and testing sets, builds a J48 decision tree on the training data,
+
+1-partition the data into ( 60% training, 40% testing):
+
+```{r}
+# Load the RWeka package
+library(RWeka)
+set.seed(1234)
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.60 , 0.40))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
+
+# Define the formula
+myFormula <- Risk ~ .
+
+# Build the J48 decision tree on the training data
+C45Fit <- J48(myFormula, data = trainData)
+
+# Create a table to compare predicted vs. actual values on the training data
+table(predict(C45Fit), trainData$Risk)
+
+# Print a summary of the J48 model
+print(C45Fit)
+
+# Plot the J48 decision tree
+plot(C45Fit)
+
+
+# Make predictions using the J48 model on the test data
+testPred <- predict(C45Fit, newdata = testData)
+
+# Create a confusion matrix
+conf_matrix <- table(testPred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+
+# Calculate performance metrics
+accuracy_G1 <- sum((diag(conf_matrix)) / sum(conf_matrix))
+error_rate_G1 <-( 1 - accuracy)
+sensitivity_G1 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
+specificity_G1 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
+precision_G1 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
+
+
+# Display performance metrics
+cat("Accuracy: ", accuracy_G1, "\n")
+cat("Error Rate: ", error_rate_G1, "\n")
+cat("Sensitivity (Recall): ", sensitivity_G1, "\n")
+cat("Specificity: ", specificity_G1, "\n")
+cat("Precision: ", precision_G1, "\n")
+        
+```
+**Analysis:**
+-   The model is highly effective in distinguishing between Low risk and High risk cases, with high          accuracy, precision and recall.
+-   The most common misclassification occurs in distinguishing between Intermediate and High risk, with      31 cases of Intermediate being incorrectly classified as High.
+-   Misclassifications between Low and Borderline risks are relatively low.
+
+2-partition the data into ( 70% training, 30% testing):
+
+```{r}
+set.seed(1234)
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.70 , 0.30))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
+
+  # Define the formula
+myFormula <- Risk ~ .
+
+# Build the J48 decision tree on the training data
+C45Fit <- J48(myFormula, data = trainData )
+
+# Create a table to compare predicted vs. actual values on the training data
+table(predict(C45Fit), trainData$Risk)
+
+# Print a summary of the J48 model
+print(C45Fit)
+
+# Plot the J48 decision tree
+plot(C45Fit)
+
+
+# Make predictions using the J48 model on the test data
+testPred <- predict(C45Fit, newdata = testData)
+
+# Create a confusion matrix
+conf_matrix <- table(testPred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+
+# Calculate performance metrics
+accuracy_G2 <- sum((diag(conf_matrix)) / sum(conf_matrix))
+error_rate_G2 <-( 1 - accuracy)
+sensitivity_G2 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
+specificity_G2 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
+precision_G2 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
+
+
+# Display performance metrics
+cat("Accuracy: ", accuracy_G2, "\n")
+cat("Error Rate: ", error_rate_G2, "\n")
+cat("Sensitivity (Recall): ", sensitivity_G2, "\n")
+cat("Specificity: ", specificity_G2, "\n")
+cat("Precision: ", precision_G2, "\n")
+           
+```
+
+3-partition the data into ( 80% training, 20% testing):
+
+```{r}
+set.seed(1234)
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.80 , 0.20))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
+
+ # Define the formula
+myFormula <- Risk ~ .
+
+# Build the J48 decision tree on the training data
+C45Fit <- J48(myFormula, data = trainData)
+
+# Create a table to compare predicted vs. actual values on the training data
+table(predict(C45Fit), trainData$Risk)
+
+# Print a summary of the J48 model
+print(C45Fit)
+
+# Plot the J48 decision tree
+plot(C45Fit)
+
+
+# Make predictions using the J48 model on the test data
+testPred <- predict(C45Fit, newdata = testData)
+
+# Create a confusion matrix
+conf_matrix <- table(testPred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+# Calculate performance metrics
+accuracy_G3 <- sum((diag(conf_matrix)) / sum(conf_matrix))
+error_rate_G3 <-( 1 - accuracy)
+sensitivity_G3 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
+specificity_G3 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
+precision_G3 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
+
+accuracy <- sum(testPred == testData$Risk) / length(testPred)
+# Display performance metrics
+cat("Accuracy: ", accuracy_G3, "\n")
+cat("Error Rate: ", error_rate_G3, "\n")
+cat("Sensitivity (Recall): ", sensitivity_G3, "\n")
+cat("Specificity: ", specificity_G3, "\n")
+cat("Precision: ", precision_G3, "\n")
+           
+```
+
+```{r}
+# Create data frames for each summary
+summary1 <- data.frame(
+  Model = "60% training 40% testing",
+  Accuracy = paste0(round(accuracy_G1 * 100, 2), "%"),
+  Sensitivity = paste0(round(sensitivity_G1 * 100, 2), "%"),
+  Specificity = paste0(round(specificity_G1 * 100, 2), "%"),
+  Precision = paste0(round(precision_G1 * 100, 2), "%")
+)
+
+summary2 <- data.frame(
+  Model = "70% training, 30% testing",
+  Accuracy = paste0(round(accuracy_G2 * 100, 2), "%"),
+  Sensitivity = paste0(round(sensitivity_G2 * 100, 2), "%"),
+  Specificity = paste0(round(specificity_G2 * 100, 2), "%"),
+  Precision = paste0(round(precision_G2 * 100, 2), "%")
+)
+
+summary3 <- data.frame(
+  Model = " 80% training 20% testing",
+  Accuracy = paste0(round(accuracy_G3 * 100, 2), "%"),
+  Sensitivity = paste0(round(sensitivity_G3 * 100, 2), "%"),
+  Specificity = paste0(round(specificity_G3 * 100, 2), "%"),
+  Precision = paste0(round(precision_G3 * 100, 2), "%")
+)
+
+# Combine summaries into a single data frame
+comparison_table <- rbind(summary1, summary2, summary3)
+
+# Print the comparison table
+print(comparison_table)
+
+```
+
+#### Decision tree using Information gain
+
+-For the construction of our decision tree model, we have opted for the C5.0 algorithm, a sophisticated and versatile tool known for its proficiency in handling classification tasks. Specifically, we harness the power of information gain as the guiding criterion within C5.0. This choice is deliberate, as information gain allows the algorithm to discern the most relevant and discriminative features in our dataset, facilitating the creation of a decision tree that excels at capturing intricate patterns and relationships.
+
+1-partition the data into ( 60% training, 40% testing):
+
+```{r}
+set.seed(1234)
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.60 , 0.40))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
+dim(trainData)
+dim(testData)
+```
+
+```{r}
+
+# install.packages("C50")
+library(C50)
+
+# Define the formula
+myFormula <- Risk ~ .
+
+# Build the C5.0 decision tree on the training data with information gain
+c50_model <- C5.0(myFormula, data = trainData)
+
+# Plot the decision tree
+plot(c50_model)
+
+# Display a summary of the decision tree
+print(c50_model)
+
+# Make predictions using the C5.0 model on the test data
+testPred <- predict(c50_model, newdata = testData)
+
+# Create a confusion matrix
+conf_matrix <- table(testPred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+# Calculate performance metrics
+accuracy_I1 <- sum((diag(conf_matrix)) / sum(conf_matrix))
+error_rate_I1 <-( 1 - accuracy)
+sensitivity_I1 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
+specificity_I1 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
+precision_I1 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
+
+# Display performance metrics
+cat("Accuracy: ", accuracy_I1, "\n")
+cat("Error Rate: ", error_rate_I1, "\n")
+cat("Sensitivity (Recall): ", sensitivity_I1, "\n")
+cat("Specificity: ", specificity_I1, "\n")
+cat("Precision: ", precision_I1, "\n")
+```
+
+**Analysis:** The C5 model demonstrates strong predictive capabilities with an accuracy of 76.15%. It effectively identifies instances of low risk (sensitivity of 78.87%) and maintains high specificity (75.36%) in recognizing non-low-risk instances. The precision of 72.26% highlights the accuracy of positive predictions. The model's tree structure, comprising 120 nodes, reflects its complexity in capturing patterns within the data. These results suggest a well-balanced model with the potential for reliable classification across multiple risk categories.
+
+2-partition the data into ( 70% training, 30% testing):
+
+```{r}
+set.seed(1234)
+ind=sample (2, nrow(dataset), replace=TRUE, prob=c(0.70 , 0.30))
+trainData=dataset[ind==1,]
+testData=dataset[ind==2,]
+
+```
+
+```{r}
+# install.packages("C50")
+library(C50)
+
+# Define the formula
+myFormula <- Risk ~ .
+
+# Build the C5.0 decision tree on the training data with information gain
+c50_model <- C5.0(myFormula, data = trainData)
+
+# Plot the decision tree
+plot(c50_model)
+
+# Display a summary of the decision tree
+print(c50_model)
+
+# Make predictions using the C5.0 model on the test data
+testPred <- predict(c50_model, newdata = testData)
+
+# Create a confusion matrix
+conf_matrix <- table(testPred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+# Calculate performance metrics
+accuracy_I2 <- sum((diag(conf_matrix)) / sum(conf_matrix))
+error_rate_I2 <-( 1 - accuracy)
+sensitivity_I2 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
+specificity_I2 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
+precision_I2 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
+
+# Display performance metrics
+cat("Accuracy: ", accuracy_I2, "\n")
+cat("Error Rate: ", error_rate_I2, "\n")
+cat("Sensitivity (Recall): ", sensitivity_I2, "\n")
+cat("Specificity: ", specificity_I2, "\n")
+cat("Precision: ", precision_I2, "\n")
+
+```
+
+**Analysis:** The C5 model achieved an accuracy of 64.90%, indicating its ability to make correct predictions across all classes. It demonstrates good sensitivity (75.20%), effectively identifying instances of high risk. However, the model's specificity (57.63%) suggests room for improvement in correctly identifying non-high-risk instances. The precision of 78.99% reflects the accuracy of positive predictions. The tree structure, comprising 81 nodes, signifies a moderate level of complexity. Overall, while the model performs reasonably well, there may be opportunities for refinement, particularly in specificity.
+
+3-partition the data into ( 80% training, 20% testing):
+
+```{r}
+set.seed(1234)
+ind=sample (2, nrow(dataset), replace=TRUE, prob=c(0.80 , 0.20))
+trainData=dataset[ind==1,]
+testData=dataset[ind==2,]
+
+```
+
+```{r}
+# install.packages("C50")
+library(C50)
+
+# Define the formula
+myFormula <- Risk ~ .
+
+# Build the C5.0 decision tree on the training data with information gain
+c50_model <- C5.0(myFormula, data = trainData)
+
+# Plot the decision tree
+plot(c50_model)
+
+# Display a summary of the decision tree
+print(c50_model)
+
+# Make predictions using the C5.0 model on the test data
+testPred <- predict(c50_model, newdata = testData)
+
+# Create a confusion matrix
+conf_matrix <- table(testPred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+# Calculate performance metrics
+accuracy_I3 <- sum((diag(conf_matrix)) / sum(conf_matrix))
+error_rate_I3 <-( 1 - accuracy)
+sensitivity_I3 <- conf_matrix[4, 4] / sum(conf_matrix[4, ])
+specificity_I3 <- sum(diag(conf_matrix[-4, -4])) / sum(conf_matrix[-4, ])
+precision_I3 <- conf_matrix[4, 4] / sum(conf_matrix[, 4])
+
+# Display performance metrics
+cat("Accuracy: ", accuracy_I3, "\n")
+cat("Error Rate: ", error_rate_I3, "\n")
+cat("Sensitivity (Recall): ", sensitivity_I3, "\n")
+cat("Specificity: ", specificity_I3, "\n")
+cat("Precision: ", precision_I3, "\n")   
+```
+
+**Analysis:** The C5 model achieved an accuracy of 64.42%, signifying its overall correctness in predicting the target variable. Notably, the model demonstrates strong sensitivity (73.03%), effectively capturing instances of high risk. The specificity (57.98%) suggests room for improvement in correctly identifying non-high-risk instances. The precision of 84.42% highlights the accuracy of positive predictions, particularly in the high-risk category. The tree structure, comprising 92 nodes, indicates a moderate level of complexity. While the model exhibits favorable precision, further refinement in specificity could enhance its overall performance.
+
+##After we constcut a three Decision tree using information gain with 3 differnte sizes, now we are going to compute a comperison between the three model's
+
+```{r}
+# Create data frames for each model's summary
+summary1 <- data.frame(
+  Model = "60%training 40%testing",
+  Accuracy = 64.90,
+  Sensitivity = 75.20,
+  Specificity = 57.63,
+  Precision = 78.99
+)
+
+summary2 <- data.frame(
+  Model = "70%training 30%testing",
+  Accuracy = 64.42,
+  Sensitivity = 73.03,
+  Specificity = 57.98,
+  Precision = 84.42
+)
+
+summary3 <- data.frame(
+  Model = "80%training 20%testing",
+  Accuracy = 64.42,
+  Sensitivity = 73.03,
+  Specificity = 57.98,
+  Precision = 84.42
+)
+
+# Combine the summaries into a single data frame
+comparison_table <- rbind(summary1, summary2, summary3)
+
+# Print the comparison table
+print(comparison_table)
+
+ 
+```
+
+**Analysis:**
+
+-   All three models exhibit similar accuracies, ranging from 64.42% to 64.90%.
+
+-   Sensitivity (Recall) is consistent across the models, with values around 73% to 75%, indicating their ability to capture positive instances.
+
+-   Specificity ranges from 57.63% to 57.98%, suggesting room for improvement in correctly identifying negative instances.
+
+-   Precision varies, with the 70% training 30% testing model showing the highest precision at 84.42%.
+
+**Conclusion:**
+
+-   The choice between the models depends on the specific goals and trade-offs. If precision is a critical factor, the 70% training 30% testing model may be preferred. However, further optimization is possible to enhance specificity across all models. Consider adjusting model parameters or exploring additional features to improve overall performance.
+
+### Decision Tree using Gini Index
+
+Opting for RPART with the Gini index involves building a decision tree that maximizes class separation by minimizing impurity. This method, rooted in recursive partitioning, aims to create nodes that group similar instances based on the Gini impurity criterion.
+
+1-partition the data into ( 60% training, 40% testing):
+
+```{r}
+set.seed(1234)
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.60 , 0.40))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
+dim(trainData)
+dim(testData)
+```
+
+```{r}
+#train using the trainData and create the rpart gini index tree
+library('rpart')
+library('rpart.plot')
+library(caret)
+tree <- rpart(myFormula, data = trainData,method = 'class')
+rpart.plot(tree) 
+
+# Make predictions using the RPART model on the test data
+test_pred <- predict(tree, newdata = testData, type = "class")
+
+# Create a confusion matrix
+conf_matrix_rpart <- table(test_pred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix_rpart)
+
+# Calculate performance metrics
+accuracy_D1 <- sum(diag(conf_matrix)) / sum(conf_matrix)
+error_rate_D1 <- 1 - accuracy
+sensitivity_D1 <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+specificity_D1 <- sum(diag(conf_matrix[-2, -2])) / sum(conf_matrix[-2, ])
+precision_D1 <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+
+
+# Display performance metrics
+cat("Accuracy: ", accuracy_D1, "\n")
+cat("Error Rate: ", error_rate_D1, "\n")
+cat("Sensitivity (Recall): ", sensitivity_D1, "\n")
+cat("Specificity: ", specificity_D1, "\n")
+cat("Precision: ", precision_D1, "\n")
+```
+
+**Analysis:**
+
+The results obtained from the rpart model showcase a balanced performance across various risk categories. The model achieved an overall accuracy of 57.39%, indicating its ability to make correct predictions across all classes. Sensitivity, measuring the model's capability to identify positive instances, is at 50.81%, demonstrating a reasonable ability to detect true positives. Specificity stands at 60.14%, indicating the model's proficiency in correctly identifying negative instances. The precision of 53.41% signifies the accuracy of positive predictions. While the model exhibits a moderate performance, further refinement or exploration of alternative models could enhance predictive capabilities depending on the specific goals and requirements of the analysis.
+
+2-partition the data into ( 70% training, 30% testing):
+
+```{r}
+set.seed(1234)
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.70 , 0.30))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
+
+```
+
+```{r}
+#train using the trainData and create the rpart gini index tree
+library('rpart')
+library('rpart.plot')
+tree <- rpart(myFormula, data = trainData,method = 'class')
+rpart.plot(tree) 
+
+
+# Make predictions using the RPART model on the test data
+test_pred <- predict(tree, newdata = testData, type = "class")
+
+# Create a confusion matrix
+conf_matrix <- table(test_pred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+# Calculate performance metrics
+accuracy_D2 <- sum(diag(conf_matrix)) / sum(conf_matrix)
+error_rate_D2 <- 1 - accuracy
+sensitivity_D2 <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+specificity_D2 <- sum(diag(conf_matrix[-2, -2])) / sum(conf_matrix[-2, ])
+precision_D2 <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+
+
+# Display performance metrics
+cat("Accuracy: ", accuracy_D2, "\n")
+cat("Error Rate: ", error_rate_D2, "\n")
+cat("Sensitivity (Recall): ", sensitivity_D2, "\n")
+cat("Specificity: ", specificity_D2, "\n")
+cat("Precision: ", precision_D2, "\n")
+
+```
+
+**Analysis:**
+
+The results from the RPART model reveal a well-balanced performance across different risk categories. The model achieved an overall accuracy of 60.31%, indicating its proficiency in making accurate predictions across all classes. Notably, it demonstrated a sensitivity of 55.10%, effectively identifying instances of low risk, and a specificity of 62.78%, accurately recognizing non-low-risk instances. The precision of 64.29% underscores the model's accuracy in positive predictions. While the model exhibits a satisfactory performance, there may be opportunities for further refinement or exploration of alternative models to enhance predictive capabilities, depending on the specific objectives and requirements of the analysis.
+
+3-partition the data into ( 80% training, 20% testing):
+
+```{r}
+set.seed(1234)
+ind=sample (2, nrow(balanced_data), replace=TRUE, prob=c(0.80 , 0.20))
+trainData=balanced_data[ind==1,]
+testData=balanced_data[ind==2,]
+
+```
+
+```{r}
+#train using the trainData and create the rpart gini index tree
+library('rpart')
+library('rpart.plot')
+tree <- rpart(myFormula, data = trainData,method = 'class')
+rpart.plot(tree) 
+
+
+# Make predictions using the RPART model on the test data
+test_pred <- predict(tree, newdata = testData, type = "class")
+
+# Create a confusion matrix
+conf_matrix <- table(test_pred, testData$Risk)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+# Calculate performance metrics
+accuracy_D3 <- sum(diag(conf_matrix)) / sum(conf_matrix)
+error_rate_D3 <- 1 - accuracy
+sensitivity_D3 <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+specificity_D3 <- sum(diag(conf_matrix[-2, -2])) / sum(conf_matrix[-2, ])
+precision_D3 <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+
+
+# Display performance metrics
+cat("Accuracy: ", accuracy_D3, "\n")
+cat("Error Rate: ", error_rate_D3, "\n")
+cat("Sensitivity (Recall): ", sensitivity_D3, "\n")
+cat("Specificity: ", specificity_D3, "\n")
+cat("Precision: ", precision_D3, "\n") 
+```
+
+**Analysis:**
+
+The outcomes of the RPART model showcase a discernible performance across distinct risk categories. The model achieved an overall accuracy of 54.75%, highlighting its capability to make correct predictions across all classes. Specifically, it demonstrated a sensitivity of 51.02%, effectively identifying instances of low risk, and a specificity of 56.42%, accurately recognizing non-low-risk instances. The precision of 54.35% emphasizes the model's accuracy in positive predictions. While the model exhibits a moderate performance, there may be room for further optimization or exploration of alternative models to enhance predictive capabilities, taking into account the specific goals and requirements of the analysis.
+
+##After we have created a decision tree using the Gini index of three different sizes, we will now calculate the comparison between the three models.
+
+```{r}
+# Create data frames for each summary
+summary1 <- data.frame(
+  Model = "60% training 40% testing",
+  Accuracy = 57.39,
+  Sensitivity = 50.81,
+  Specificity = 60.14,
+  Precision = 53.41
+)
+
+summary2 <- data.frame(
+  Model = "70% training, 30% testing",
+  Accuracy = 60.31,
+  Sensitivity = 55.10,
+  Specificity = 62.78,
+  Precision = 64.29
+)
+
+summary3 <- data.frame(
+  Model = " 80% training 20% testing",
+  Accuracy = 54.75,
+  Sensitivity = 51.02,
+  Specificity = 56.42,
+  Precision = 54.35
+)
+
+
+# Combine summaries into a single data frame
+comparison_table <- rbind(summary1, summary2, summary3)
+
+# Print the comparison table
+print(comparison_table)
+
+```
+
+**Observations:**
+
+-   The model trained with 70% of the data for training and 30% for testing exhibits the highest overall performance with the highest accuracy, sensitivity, specificity, and precision.
+
+-   The 60% training and 40% testing model follows closely with competitive metrics across all categories.
+
+-   The 80% training and 20% testing model lags behind in accuracy and precision but maintains moderate performance in sensitivity and specificity.
+
+**Conclusion:** Considering the three models, the 70% training and 30% testing model stands out as the most effective, striking a balance between accuracy, sensitivity, specificity, and precision. It outperforms the other two models, demonstrating its robustness in handling different proportions of training and testing data
+
+### Classification conclusion:
+
+the C5 model using information gain emerged as the preferred choice. The C5 model exhibited superior predictive performance with a higher accuracy, sensitivity, specificity, and precision compared to the other models. The decision to favor C5 is grounded in its ability to capture both positive and negative instances effectively, making it well-suited for the dataset characteristics.
+
+## 7- Clustering
+
+**Clustering models are utilized to group data into distinct clusters or groups. In our case, we will apply the k-means clustering algorithm to our dataset and interpret the results, taking into consideration our knowledge of the class label.**
+
+Certain factors can impact the efficacy of the final clusters formed when using k-means clustering that we have to be aware. For instance, **outliers:** Cluster formation is very sensitive to the presence of outliers as that they can pull the cluster towards itself, thus affecting optimal cluster formation. However, we have already addressed this concern in earlier steps.
+
+#### First we have to remove target class:
+
+```{r}
+cdataset = subset(dataset, select = -c(Risk))
+```
+
+We can now use the rest of the attributes for clustering.
+
+#### Check our data set type:
+
+The checking is because K-Means algorithm does not work with categorical data.
+
+```{r}
+# 1- view
+str(cdataset)
+```
+
+**It's clear that all 9 variables are numeric of type integer so we can start working on it with no issues.**
+
+#### Determining the optimal number of clusters:
+
+```{r}
+fviz_nbclust(cdataset, kmeans, method = "silhouette")+ labs(subtitle = "silhouette method")
+```
+
+According to silhouette method best number of clusters is K = 2 so will test it along with other high points such as k=4 , k=8.
+
+#### Clustering K= 2:
+
+##### As we don't want the clustering algorithm to depend to an arbitrary variable unit, we start by scaling/standardizing the data:
+
+```{r}
+# 2- prepreocessing 
+#Data types should be transformed into numeric types before clustering.
+cdataset <- scale(cdataset)
+```
+
+#### K-means:
+
+K-means algorithm is non-deterministic, meaning that the clustering outcome can vary each time the algorithm is executed, even when applied to the same dataset. To address this, we will set a seed for the random number generation, ensuring that the results can be reproduced consistently.
+
+```{r}
+# 3- run k-means clustering to find 2 clusters
+#set a seed for random number generation  to make the results reproducible
+set.seed(8953)
+kmeans.result <- kmeans(cdataset,2)
+# print the clusterng result
+kmeans.result
+```
+
+k-means algorithm is used to identify and assign the data to two clusters so that each observation will be assigned to one of the two clusters. From the output, we can observe that two different clusters have been found with sizes 516 and 484, and the within cluster sum of square (WCSS) =11.2% meaning the clusters are kind of compacted. But we need to visualize it to have a better look.
+
+**Cluster Plot:**
+
+```{r}
+# 4- visualize clustering and install package
+library(factoextra)
+fviz_cluster(kmeans.result, data = cdataset)
+```
+
+The plot shows overlapping clusters, particularly in the middle, suggesting that some data points are challenging to assign to a specific cluster. An avegrage silhouette coefficient can be more precise so we will calculate it.
+
+#### **Average Silhouette Coefficient:**
+
+The value is between [-1, 1], a score of 1 denotes the best. And the worst value is -1. Values near 0 denote overlapping clusters.
+
+```{r}
+#Average silhouette
+library(cluster)
+avg_sil <- silhouette(kmeans.result$cluster, dist(cdataset))
+# k-means clustering with estimating k and initializations
+fviz_silhouette(avg_sil)
+```
+
+The Average Silhouette Coefficient of 0.11 suggests that there is a certain level of similarity among the data points within the clusters formed through the clustering process. However, the coefficient is relatively low, approaching zero, indicating the presence of overlapping clusters.
+
+#### BCubed precision and recall:
+
+To measure the quality of the cluster the average BCubed precision and recall of all objects in the data set is computed:
+
+```{r}
+# Cluster assignments and ground truth labels
+cluster_assignments <- kmeans.result$cluster
+ground_truth <- dataset$Risk
+
+# Function to calculate BCubed precision and recall
+calculate_bcubed_metrics <- function(cluster_assignments, ground_truth) {
+  n <- length(cluster_assignments)
+  precision_sum <- 0
+  recall_sum <- 0
+
+  for (i in 1:n) {
+    cluster <- cluster_assignments[i]
+    label <- ground_truth[i]
+
+    # Count the number of items from the same category within the same cluster
+    same_category_same_cluster <- sum(ground_truth[cluster_assignments == cluster] == label)
+
+    # Count the total number of items in the same cluster
+    total_same_cluster <- sum(cluster_assignments == cluster)
+
+    # Count the total number of items with the same category
+    total_same_category <- sum(ground_truth == label)
+
+    # Calculate precision and recall for the current item and add them to the sums
+    precision_sum <- precision_sum + same_category_same_cluster / total_same_cluster
+    recall_sum <- recall_sum + same_category_same_cluster / total_same_category
+  }
+  precision <- precision_sum / n  # Calculate average precision 
+  recall <- recall_sum / n        # Calculate average recall
+
+  return(list(precision = precision, recall = recall)) }
+
+# Calculate BCubed precision and recall
+precision_recall <- calculate_bcubed_metrics(cluster_assignments, ground_truth)
+
+# Extract precision and recall from the metrics
+precision <- precision_recall$precision
+recall <- precision_recall$recall
+
+# Print the results
+cat(" BCubed Precision:", precision, "\n","BCubed Recall:", recall)
+```
+
+The calculated precision value is 0.32996 not a high value. It means that the clusters are not pure; meaning not all data points in a cluster belong to the same category.
+
+On the other hand, the calculated recall value of 0.53179 implies that approximately half of the objrcts belonging to the same categore are correctly assigned to the same cluster.
+
+**Conclusion of K=2:**
+
+Considering upove results for K=2 in isolation, without considering our knowledge of the class label, it is evident that the performance is suboptimal (less than ideal). Therefore, it is recommended to explore other values for K in order to achieve better clustering results.
+
+#### Clusterin**g K=** 4:
+
+##### scaling the data:
+
+```{r}
+# 2- prepreocessing 
+#Data types should be transformed into numeric types before clustering.
+cdataset <- scale(cdataset)
+```
+
+#### K-means:
+
+```{r}
+# 1- run k-means clustering to find 4 clusters
+#set a seed for random number generation  to make the results reproducible
+set.seed(8953)
+
+kmeans_result <- kmeans(cdataset, centers = 4, nstart = 25)
+
+#Accessing kmeans_result
+print(kmeans_result)
+```
+
+We can observe that four different clusters have been found with sizes 240 , 255 ,244 and 261. And the within cluster sum of square (WCSS) =22.5% which means that the cluster less compact and cohesive. Its higher than 2 clusters result which means 2 clusters are better in terms of compactness.
+
+**Cluster plot :**
+
+```{r}
+# 2- visualize clustering and install package
+library(factoextra)
+fviz_cluster(kmeans_result, data = cdataset)
+```
+
+As we can see In the cluster plot, it's evident that there are overlapping clusters.
+
+#### **Average Silhouette Coefficient:**
+
+```{r}
+#3-Average silhouette
+library(cluster)
+avg_sil <- silhouette(kmeans_result$cluster, dist(cdataset))
+# k-means clustering with estimating k and initializations
+fviz_silhouette(avg_sil)
+```
+
+An Average Silhouette coefficient of 0.12 indicate that the clustering is not very well-defined, and there is ambiguity and overlap between clusters. However, the result is higher than 2 clusters.
+
+#### BCubed precision and recall:
+
+```{r}
+# Cluster assignments and ground truth labels
+cluster_assignments <- kmeans_result$cluster
+ground_truth <- dataset$Risk
+
+# Function to calculate BCubed precision and recall
+calculate_bcubed_metrics <- function(cluster_assignments, ground_truth) {
+  n <- length(cluster_assignments)
+  precision_sum <- 0
+  recall_sum <- 0
+
+  for (i in 1:n) {
+    cluster <- cluster_assignments[i]
+    label <- ground_truth[i]
+
+    # Count the number of items from the same category within the same cluster
+    same_category_same_cluster <- sum(ground_truth[cluster_assignments == cluster] == label)
+
+    # Count the total number of items in the same cluster
+    total_same_cluster <- sum(cluster_assignments == cluster)
+
+    # Count the total number of items with the same category
+    total_same_category <- sum(ground_truth == label)
+
+    # Calculate precision and recall for the current item and add them to the sums
+    precision_sum <- precision_sum + same_category_same_cluster / total_same_cluster
+    recall_sum <- recall_sum + same_category_same_cluster / total_same_category
+  }
+  precision <- precision_sum / n  # Calculate average precision 
+  recall <- recall_sum / n        # Calculate average recall
+
+  return(list(precision = precision, recall = recall)) }
+
+# Calculate BCubed precision and recall
+precision_recall <- calculate_bcubed_metrics(cluster_assignments, ground_truth)
+
+# Extract precision and recall from the metrics
+precision <- precision_recall$precision
+recall <- precision_recall$recall
+
+# Print the results
+cat(" BCubed Precision:", precision, "\n","BCubed Recall:", recall)
+```
+
+The calculated precision value is 0.336335 not a high value it mean the clusters are not pure.and not all data points in a cluster belong to the same category.
+
+The calculated recall value is 0.2729542 it's a low result meaning most of the data are not in the same cluster.
+
+**Conclusion of K=4:**
+
+After applying various evaluation metrics such as the average silhouette coefficient, within-cluster sum of squares ,Bcubed precision and recall.it became clear to us that k=4 Is not a good number of clusters since there is overlapping and the clusters are not pure .And the within cluster sum of square 4 clusters has a higher value than 2 cluster indicating that clusters less compact .but According to the number of class label its the best among the considered options.
+
+#### Clustering K=8 :
+
+##### scaling the data:
+
+```{r}
+# 2- prepreocessing 
+#Data types should be transformed into numeric types before clustering.
+cdataset <- scale(cdataset)
+```
+
+#### K-means:
+
+```{r}
+# 3- run k-means clustering to find 8 clusters
+#set a seed for random number generation  to make the results reproducible
+set.seed(8953)
+kmeansresult <- kmeans(cdataset,8)
+# print the clusterng result
+kmeansresult
+```
+
+We can observe that the eight different clusters have been found with sizes 136, 149, 100, 132,93, 139 and 129 respectively, and the within cluster sum of square (WCSS) = 31.9%. which is higher than 2 and 4 clusters result which means 2,4 clusters are better in terms of compactness or homogeneity compared to the clustering result of 8 clusters.
+
+**Cluster Plot:**
+
+```{r}
+# 2- visualize clustering and install package
+library(factoextra)
+fviz_cluster(kmeansresult, data = cdataset)
+```
+
+It's clear that the eight clusters are overlapping.
+
+#### **Average Silhouette Coefficient:**
+
+```{r}
+#Average silhouette
+library(cluster)
+avg_sil <- silhouette(kmeansresult$cluster, dist(cdataset))
+# k-means clustering with estimating k and initializations
+fviz_silhouette(avg_sil)
+```
+
+An Average Silhouette Coefficient of 0.1 indicates that, the clusters formed in the clustering process have some degree of similarity among their data points. However, the result is lower than 2 clusters which has silhouette coefficient average of 0.11 and also lower than K=4 clusters that is equal to 0.12.
+
+#### BCubed precision and recall:
+
+```{r}
+# Cluster assignments and ground truth labels
+cluster_assignments <- kmeansresult$cluster
+ground_truth <- dataset$Risk
+
+# Function to calculate BCubed precision and recall
+calculate_bcubed_metrics <- function(cluster_assignments, ground_truth) {
+  n <- length(cluster_assignments)
+  precision_sum <- 0
+  recall_sum <- 0
+
+  for (i in 1:n) {
+    cluster <- cluster_assignments[i]
+    label <- ground_truth[i]
+
+    # Count the number of items from the same category within the same cluster
+    same_category_same_cluster <- sum(ground_truth[cluster_assignments == cluster] == label)
+
+    # Count the total number of items in the same cluster
+    total_same_cluster <- sum(cluster_assignments == cluster)
+
+    # Count the total number of items with the same category
+    total_same_category <- sum(ground_truth == label)
+
+    # Calculate precision and recall for the current item and add them to the sums
+    precision_sum <- precision_sum + same_category_same_cluster / total_same_cluster
+    recall_sum <- recall_sum + same_category_same_cluster / total_same_category
+  }
+  precision <- precision_sum / n  # Calculate average precision 
+  recall <- recall_sum / n        # Calculate average recall
+
+  return(list(precision = precision, recall = recall)) }
+
+# Calculate BCubed precision and recall
+precision_recall <- calculate_bcubed_metrics(cluster_assignments, ground_truth)
+
+# Extract precision and recall from the metrics
+precision <- precision_recall$precision
+recall <- precision_recall$recall
+
+# Print the results
+cat(" BCubed Precision:", precision, "\n","BCubed Recall:", recall)
+```
+
+The calculated precision value is 0.36487 not a high value it mean the clusters are not pure.
+
+The calculated recall value is 0.21212 it's a low result meaning most of the data are not in the same cluster.
+
+**Conclusion of K=8:**
+
+Is not a good number of clusters especially when compared to the results obtained with K=2 and K=4 clusters. This conclusion is based on various evaluation metrics such as the average silhouette coefficient, within-cluster sum of squares, and Bcubed precision and recall. In all aspects, K=8 performed the worst. Additionally, considering the presence of class labels and our prior knowledge of the data set, we know the actual number of groups within the class label. So, by also taking this information into account, we can determine that K=8 is not an optimal number of clusters.
+
+#### Validation:
+
+```{r}
+library(NbClust)
+#a)fviz_nbclust() with silhouette method using library(factoextra) 
+fviz_nbclust(cdataset, kmeans, method = "silhouette")+
+  labs(subtitle = "Silhouette method")
+#b) NbClust validation
+fres.nbclust <- NbClust(cdataset, distance="euclidean", min.nc = 2, max.nc = 10, method="kmeans", index="all")
+```
+
+According to the NbClust validation method, which utilizes the majority rule, the best number of clusters is 4. This number contradicts the initial suggestion from the silhouette method, which indicated that the best number of clusters is 2. However, upon revisiting the calculations and evaluating the performance, it is accurate to conclude that K=4 indeed performs the best among the considered options.
